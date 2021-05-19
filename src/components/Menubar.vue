@@ -1,0 +1,199 @@
+<template>
+	<div class="menu">
+		<div class="navcontainer">
+			<img src="/assets\uberlogo.png" alt="" srcset="" id="uberlogo" />
+			<img src="/assets\settings.png" alt="" srcset="" id="settingsicon" />
+		</div>
+
+		<div class="locationviewer">
+			<h2>Route Details</h2>
+
+			<div class="startloc popup" :title="sl">
+				{{ sl.substr(0, 20) }}...
+				<i class="gg-home-alt icons"></i>
+			</div>
+			<div class="endloc popup" :title="el">
+				{{ el.substr(0, 20) }}...
+				<i class="gg-edit-black-point icons"></i>
+			</div>
+		</div>
+
+		<h2>Choose Class</h2>
+
+		<div class="classes">
+			<div
+				id="standard"
+				class="aclass"
+				:class="{ eita: !selected }"
+				@click="selected = 0"
+			>
+				Standard
+				<span style="margin-left: 69px">Tk {{ sp }}</span>
+			</div>
+			<div
+				id="premium"
+				class="aclass"
+				:class="{ eita: selected }"
+				@click="selected = 1"
+			>
+				Premium
+				<span style="margin-left: 69px">Tk {{ pp }}</span>
+			</div>
+		</div>
+
+		<div class="buttons">
+			<button style="background: #6c5ce7" @click="shownames">Confirm</button>
+			<button style="background: rgb(28, 28, 28)">Cancel</button>
+		</div>
+	</div>
+</template>
+
+<script>
+	export default {
+		props: {
+			sl: '',
+			el: '',
+			sp: Number,
+			pp: Number,
+		},
+		data() {
+			return {
+				startloc: this.sl,
+				endloc: this.el,
+				standardprice: this.sp,
+				premiumprice: this.pp,
+				selected: 0,
+			};
+		},
+		methods: {
+			shownames() {
+				console.log(this.startloc, this.endloc);
+			},
+
+			myFunction() {
+				var popup = document.getElementById('myPopup');
+				popup.classList.toggle('show');
+				console.log(popup.innerHTML);
+			},
+		},
+	};
+</script>
+
+<style scoped>
+	.menu {
+		width: 24vw;
+		height: 100vh;
+		margin: 0;
+		float: left;
+	}
+	.menu img#uberlogo {
+		width: 69px;
+		height: auto;
+		float: left;
+		position: relative;
+		top: 12%;
+	}
+	.menu img#settingsicon {
+		width: 28px;
+		height: auto;
+		float: right;
+		position: relative;
+		top: 0%;
+	}
+	.navcontainer {
+		margin-top: 45px;
+		margin-left: 13%;
+		margin-right: 13%;
+		height: 80px;
+	}
+
+	.locationviewer {
+		margin: 0 10%;
+		margin-bottom: 80px;
+	}
+	.classes {
+		color: #d8d8d8;
+		margin: 0 13%;
+		margin-bottom: 69px;
+	}
+
+	h2 {
+		margin-bottom: 40px;
+		color: #eee;
+		-webkit-user-select: none; /* Safari */
+		-moz-user-select: none; /* Firefox */
+		-ms-user-select: none; /* IE10+/Edge */
+		user-select: none; /* Standard */
+	}
+
+	.startloc,
+	.endloc {
+		color: #888;
+		border: 1px solid #888;
+		border-radius: 20px;
+		margin: 18px;
+		padding: 8px;
+		padding-left: 28px;
+		text-align: left;
+	}
+
+	.icons {
+		float: right;
+		margin-right: 13px;
+		position: relative;
+		color: #888;
+	}
+
+	.gg-home-alt {
+		top: 8px;
+	}
+	.gg-edit-black-point {
+		top: 3px;
+	}
+
+	.aclass {
+		display: flex;
+		border-radius: 80px;
+		margin: 18px;
+		height: 45px;
+		align-items: center;
+		justify-content: center;
+		background: rgb(28, 28, 28);
+		-webkit-user-select: none; /* Safari */
+		-moz-user-select: none; /* Firefox */
+		-ms-user-select: none; /* IE10+/Edge */
+		user-select: none; /* Standard */
+	}
+
+	.aclass.eita {
+		background: #111;
+	}
+
+	.aclass:hover,
+	button:hover {
+		opacity: 0.38;
+	}
+
+	.buttons button {
+		border-radius: 80px;
+		border: none;
+		color: #eee; /* White text */
+		padding: 10px 24px; /* Some padding */
+		cursor: pointer; /* Pointer/hand icon */
+		width: 100%; /* Set a width if needed */
+		display: block; /* Make the buttons appear below each other */
+		height: 45px;
+		margin: 18px 0;
+	}
+
+	.buttons {
+		margin: 0 18%;
+	}
+
+	.popup {
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+</style>
