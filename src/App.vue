@@ -186,6 +186,7 @@
 		height: 100%;
 		z-index: 999;
 		position: fixed;
+		top: 0%;
 		left: 0%;
 		color: rgb(28, 28, 28);
 		font-size: 1.18rem;
