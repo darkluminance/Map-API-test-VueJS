@@ -1,11 +1,36 @@
 <template>
 	<div id="mapid"></div>
+	<div v-if="isLoading" class="loadingScreen">
+		<div v-if="spinShape === 'square'">
+			<SquareSpinner></SquareSpinner>
+		</div>
+
+		<div v-if="spinShape === 'pulse'">
+			<PulseSpinner></PulseSpinner>
+		</div>
+
+		<div v-if="spinShape === 'cube'">
+			<CubeSpinner></CubeSpinner>
+			<h2>
+				Checking for available routes
+			</h2>
+		</div>
+	</div>
+
+	<!-- Location pointer Button -->
+	<div @click="flytolocation" class="locationbtnl">
+		<img src="/assets/curloc.png" alt="" srcset="" />
+	</div>
 </template>
 
 <script>
 	import { computed, onMounted, ref } from 'vue';
+	import SquareSpinner from './Animations/SquareSpinner';
+	import PulseSpinner from './Animations/PulseSpinner';
+	import CubeSpinner from './Animations/CubeSpinner';
 	export default {
 		props: {},
+		components: { SquareSpinner, PulseSpinner, CubeSpinner },
 		setup(props, context) {
 			var curlocation = ref([0, 0]); //Storing the current location
 			var startlocation = ref([0, 0]); //Storing the current location
@@ -19,6 +44,13 @@
 			var firsttime = true;
 			let rfare = 0;
 			let rprem = 0;
+			let isLocationEnabled = false;
+			let isLoading = ref(true);
+			let spinShape = ref('cube');
+			var carmarker = ref(null);
+			let driverMarkers = ref(null);
+			let circlelayer = ref(null);
+			let firstClick = false;
 
 			const message = computed(() => {
 				return startlocationname.value;
@@ -27,7 +59,6 @@
 			//Get the map data from the API
 			const getMapData = () => {
 				//Making the map and adding the tiles
-
 				mymap = L.map('mapid');
 
 				L.tileLayer(
@@ -86,25 +117,23 @@
 					} else {
 						let pointlocc = [e.latlng.lat, e.latlng.lng];
 						targetlocation.value = pointlocc;
+						firstClick = true;
 					}
-					gettheroute(targetlocation.value[0], targetlocation.value[1]);
+					if (firstClick)
+						gettheroute(targetlocation.value[0], targetlocation.value[1]);
 				});
 			};
 
 			function getLocation() {
 				if (navigator.geolocation) {
 					return new Promise((showPosition) => {
-						navigator.geolocation.getCurrentPosition(showPosition);
+						navigator.geolocation.getCurrentPosition(showPosition, showError);
 					});
 				} else {
 					alert(
 						'Cannot find the location. Please check your GPS or browser compatibility.'
 					);
 				}
-			}
-
-			function showPosition(position) {
-				return [position.coords.latitude, position.coords.longitude];
 			}
 
 			async function findloc() {
@@ -116,44 +145,60 @@
 				setthepos(foundpos);
 			}
 
+			function showPosition(position) {
+				return [position.coords.latitude, position.coords.longitude];
+			}
+			function showError(error) {
+				console.log(error.message);
+				isLocationEnabled = false;
+			}
 			function setthepos(loca) {
 				locmarker.setLatLng(loca);
 
-				//Add map circle 	ONLY IF FIRST TIME
-				if (firsttime) {
-					var radius = 80;
+				//Clears the location circle
+				mymap.removeLayer(circlelayer);
+				circlelayer = L.layerGroup();
+				circlelayer.clearLayers();
 
-					//---------------CHANGE THIS circleMarker() to circle() AND REMOVE SET RADIUS PART IF ANY ERROR ----------
+				//Sets the radius of the circle
+				var radius = 25;
+
+				//---------------CHANGE THIS circleMarker() to circle() AND REMOVE SET RADIUS PART IF ANY ERROR ----------
+				//Add the circle to the circle layer
+				circlelayer.addLayer(
 					L.circle(loca, radius, {
 						opacity: 0.5,
 						weight: 1,
 						fillOpacity: 0.2,
 					})
-						// .setRadius(420 / zoomlevel.value)
-						.addTo(mymap);
-					mymap.setView(loca, 18, { animation: true });
+				);
+				// .setRadius(420 / zoomlevel.value)
+				//.addTo(mymap);
+
+				//Add map circle 	ONLY IF FIRST TIME
+				if (firsttime && !isLocationEnabled) {
+					mymap.setView(loca, 18, { animate: true, duration: 0.75 });
+					isLoading.value = false;
 				}
 
+				//Add the circle layer to the map
+				mymap.addLayer(circlelayer);
+
 				curlocation.value = loca;
+
+				isLocationEnabled = true;
 			}
 
 			//routing
 			async function gettheroute(xpos, ypos) {
+				spinShape.value = 'cube';
+				isLoading.value = true;
+				// console.log(isLoading, Date.now());
 				//Clear previous routes
 				if (routestorage != null) {
 					mymap.removeControl(routestorage);
 					routestorage = null;
 				}
-
-				//Set the mapview to middle point of the two points
-				mymap.setView(
-					[
-						(xpos + startlocation.value[0]) / 2,
-						(ypos + startlocation.value[1]) / 2,
-					],
-					13,
-					{ animation: true }
-				);
 
 				//Custom marker for route points
 				var fromIcon = new L.Icon({
@@ -270,6 +315,20 @@
 								ridefare,
 								ridefareprem
 							);
+
+							//Set the mapview to middle point of the two points
+							mymap.flyTo(
+								[
+									(xpos + startlocation.value[0]) / 2,
+									(ypos + startlocation.value[1]) / 2,
+								],
+								13,
+								{ animate: true, duration: 0.5 }
+							);
+
+							isLoading.value = false;
+							context.emit('routesearched');
+							// console.log(isLoading, Date.now());
 						}, 1000);
 
 						/*
@@ -280,6 +339,34 @@
 						routedvals.value = [routedist, routedtime];
 					})
 				);
+			}
+
+			function clearTheRoute() {
+				//Clear previous routes
+				if (routestorage != null) {
+					mymap.removeControl(routestorage);
+					routestorage = null;
+
+					mymap.flyTo(curlocation.value, 18, {
+						animate: true,
+						duration: 0.75,
+					});
+
+					startlocation.value = curlocation.value;
+
+					getstartpositionname(startlocation.value[0], startlocation.value[1]);
+					startlocationname.value = 'Current location';
+					targetlocationname.value = '';
+
+					context.emit(
+						'updatestartlocationnamevalue',
+						startlocationname.value,
+						targetlocationname.value,
+						rfare,
+						rprem
+					);
+				}
+				console.log('Routes cleared');
 			}
 
 			async function getpositionname(x, y) {
@@ -335,14 +422,61 @@
 				);
 			}
 
+			function flytolocation() {
+				mymap.flyTo(curlocation.value, 18, {
+					animate: true,
+					duration: 0.75,
+				});
+			}
+
+			function showAllDriversInRange(lat, lng) {
+				let driverLocations = [];
+
+				driverMarkers = L.layerGroup();
+				driverMarkers.clearLayers();
+
+				let fetched = fetch(
+					`http://localhost:5000/getdriverlocation/${lat}/${lng}`
+				)
+					.then((res) => res.json())
+					.then((data) => {
+						driverLocations = data.rows;
+					})
+					.catch((err) => console.log(err, 'Error!!!'));
+
+				setTimeout(() => {
+					mymap.removeLayer(driverMarkers);
+					//console.log(driverLocations, 'The data is here!!!');
+					for (let index = 0; index < driverLocations.length; index++) {
+						var carIcon = new L.Icon({
+							iconUrl: 'https://i.imgur.com/dl2jT16.png',
+							iconSize: [21, 53.5],
+							iconAnchor: [10.5, 26.75],
+						});
+
+						carmarker = L.marker(
+							[driverLocations[index][1], driverLocations[index][2]],
+							{
+								icon: carIcon,
+							}
+						);
+
+						driverMarkers.addLayer(carmarker);
+					}
+					mymap.addLayer(driverMarkers);
+				}, 800);
+			}
+
 			onMounted(() => {
+				spinShape.value = 'square';
+				isLoading.value = true;
 				getMapData();
-				findloc();
+				/* findloc();
 				setTimeout(() => {
 					//console.log('ready', curlocation.value);
 					startlocation.value = curlocation.value;
 					getstartpositionname(startlocation.value[0], startlocation.value[1]);
-					console.log(startlocation.value, curlocation.value);
+					//console.log(startlocation.value, curlocation.value);
 
 					setTimeout(() => {
 						if (
@@ -353,21 +487,26 @@
 						context.emit(
 							'updatestartlocationnamevalue',
 							startlocationname.value,
-							targetlocationname.value
+							targetlocationname.value,
+							rfare,
+							rprem
 						);
 						firsttime = false;
 					}, 800);
-				}, 800);
-
+				}, 800); */
 				setInterval(() => {
 					findloc();
 					setTimeout(() => {
-						console.log('calling again', curlocation.value);
-						if (firsttime) startlocation.value = curlocation.value;
-						getstartpositionname(
-							startlocation.value[0],
-							startlocation.value[1]
-						);
+						//console.log('calling again', curlocation.value);
+						setTimeout(() => {
+							if (firsttime) startlocation.value = curlocation.value;
+							if (isLocationEnabled && !firsttime) {
+								getstartpositionname(
+									startlocation.value[0],
+									startlocation.value[1]
+								);
+							}
+						}, 800);
 						setTimeout(() => {
 							if (
 								startlocation.value[0] === curlocation.value[0] &&
@@ -381,9 +520,14 @@
 								rfare,
 								rprem
 							);
+							if (firsttime && isLocationEnabled) {
+								firsttime = false;
+							}
+
+							showAllDriversInRange(curlocation.value[0], curlocation.value[1]);
 						}, 800);
 					}, 800);
-				}, 3000);
+				}, 2000);
 				//gettheroute();
 			});
 
@@ -406,6 +550,15 @@
 				firsttime,
 				rfare,
 				rprem,
+				isLocationEnabled,
+				clearTheRoute,
+				isLoading,
+				spinShape,
+				showAllDriversInRange,
+				carmarker,
+				driverMarkers,
+				circlelayer,
+				flytolocation,
 			};
 		},
 	};
@@ -428,5 +581,44 @@
 	.leaflet-touch .leaflet-bar {
 		border: 0px solid rgba(0, 0, 0, 0.2);
 		background-clip: padding-box;
+	}
+
+	.loadingScreen {
+		background: rgba(255, 255, 255, 0.85);
+		width: 100%;
+		height: 100%;
+		z-index: 999;
+		position: fixed;
+		top: 0%;
+		left: 0%;
+		color: rgb(28, 28, 28);
+		font-size: 1.18rem;
+
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.loadingScreen h2 {
+	}
+
+	.locationbtnl {
+		position: absolute;
+		top: 85%;
+		left: 90%;
+		bottom: 10%;
+		width: 32px;
+		height: 32px;
+		z-index: 999;
+		background: #282828;
+		border-radius: 50%;
+		padding: 0.75em;
+		filter: drop-shadow(0 0 0.5rem #6c5ce7);
+	}
+	.locationbtnl img {
+		width: 32px;
+		height: 32px;
+		/* Invert color to white */
+		-webkit-filter: invert(100%); /* Safari/Chrome */
+		filter: invert(100%);
 	}
 </style>

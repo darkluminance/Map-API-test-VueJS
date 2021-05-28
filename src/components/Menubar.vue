@@ -43,7 +43,9 @@
 
 		<div class="buttons">
 			<button style="background: #6c5ce7" @click="shownames">Confirm</button>
-			<button style="background: rgb(28, 28, 28)">Cancel</button>
+			<button style="background: rgb(28, 28, 28)" @click="emitClearRoute">
+				Cancel
+			</button>
 		</div>
 	</div>
 </template>
@@ -75,6 +77,10 @@
 				popup.classList.toggle('show');
 				console.log(popup.innerHTML);
 			},
+
+			emitClearRoute() {
+				this.$emit('resetRoutes');
+			},
 		},
 	};
 </script>
@@ -87,11 +93,11 @@
 		float: left;
 	}
 	.menu img#uberlogo {
-		width: 69px;
+		width: 128px;
 		height: auto;
 		float: left;
 		position: relative;
-		top: 12%;
+		top: 0%;
 	}
 	.menu img#settingsicon {
 		width: 28px;
