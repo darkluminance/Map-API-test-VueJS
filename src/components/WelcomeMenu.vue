@@ -1,16 +1,20 @@
 <template>
+	<!-- The menu container -->
 	<div class="menu">
+		<!-- Navigation bar -->
 		<div class="navcontainer">
 			<img src="/assets\uberlogo.png" alt="" srcset="" id="uberlogo" />
 			<img src="/assets\settings.png" alt="" srcset="" id="settingsicon" />
 		</div>
 
+		<!-- Header -->
 		<div class="welcome">
 			<h2>Welcome,<br />{{ user.name }}!</h2>
 
 			<p>{{ welcomep1 }}</p>
 			<p>{{ welcomep2 }}</p>
 
+			<!-- If the user is a driver, show the GO button to start looking for trips -->
 			<div v-if="type === 'D'" class="driverbtn">
 				<button>GO</button>
 			</div>
@@ -22,19 +26,9 @@
 	export default {
 		props: {
 			user: {},
-			welcomep1: '',
-			welcomep2: '',
-			type: '',
-		},
-		data() {
-			return {
-				userd: this.user,
-			};
-		},
-		methods: {},
-		mounted() {
-			console.log(this.user);
-			console.log(this.userd);
+			welcomep1: '', //Text to show if user is Client
+			welcomep2: '', //Text to show if user is Driver
+			type: '', //Type of User
 		},
 	};
 </script>

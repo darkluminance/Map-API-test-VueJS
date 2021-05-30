@@ -1,6 +1,14 @@
+<!-- HTML part of the code -->
 <template>
+	<!--		The map data will be inside this div  -->
 	<div id="mapid"></div>
+
+	<!-- Loading screen will show only if anything is loading. It's controlled by a boolean value -->
 	<div v-if="isLoading" class="loadingScreen">
+		<!-- There are three types of loading animations. Each will show depending on what's being loaded -->
+		<!-- Square loading will be while logging in -->
+		<!-- Cube loading will be when a destination has been selected and the route is being searched -->
+		<!-- Pulse loading will occur when searching for a trip -->
 		<div v-if="spinShape === 'square'">
 			<SquareSpinner></SquareSpinner>
 		</div>
@@ -17,13 +25,14 @@
 		</div>
 	</div>
 
-	<!-- Location pointer Button -->
+	<!-- Location pointer Button. Clicking this will make the map cursor to fly to the current location  -->
 	<div @click="flytolocation" class="locationbtnl">
 		<img src="/assets/curloc.png" alt="" srcset="" />
 	</div>
 </template>
 
 <script>
+	// Imports necessary files for the program
 	import { computed, onMounted, ref } from 'vue';
 	import SquareSpinner from './Animations/SquareSpinner';
 	import PulseSpinner from './Animations/PulseSpinner';
@@ -37,30 +46,26 @@
 			var startlocationname = ref(''); //Storing the start location name
 			var targetlocation = ref([0, 0]); //Storing the target location
 			var targetlocationname = ref(''); //Storing the target location name
-			var mymap = null;
-			var locmarker = ref(null);
-			var routedvals = ref([]);
-			var routestorage = null;
-			var firsttime = true;
-			let rfare = 0;
-			let rprem = 0;
-			let isLocationEnabled = false;
-			let isLoading = ref(true);
-			let spinShape = ref('cube');
-			var carmarker = ref(null);
-			let driverMarkers = ref(null);
-			let circlelayer = ref(null);
-			let firstClick = false;
-
-			const message = computed(() => {
-				return startlocationname.value;
-			});
+			var mymap = null; //Stores the map data
+			var locmarker = ref(null); //The marker data of current location
+			var routestorage = null; //For storing the route data between start point and destination point
+			var firsttime = true; //Whether it's user's first time
+			let rfare = 0; //The expected fare for the trip for standard trip
+			let rprem = 0; //The expected fare for the trip for premium trip
+			let isLocationEnabled = false; //Whether location access is given or not
+			let isLoading = ref(true); //Whether the screen is loading anything or not
+			let spinShape = ref('cube'); //The shape of the loading screen
+			var carmarker = ref(null); //Marker of each driver for pushing in the map
+			let driverMarkers = ref(null); //Stores the markers of the drivers in range
+			let circlelayer = ref(null); //The small circle around the user's location
+			let firstClick = false; //To prevent users from setting start location at first before setting destination
 
 			//Get the map data from the API
 			const getMapData = () => {
 				//Making the map and adding the tiles
 				mymap = L.map('mapid');
 
+				//This is show the map
 				L.tileLayer(
 					'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
 					{
@@ -73,8 +78,11 @@
 						accessToken:
 							'pk.eyJ1IjoiZGFya2x1bWluYW5jZSIsImEiOiJja29zcGJrdDIwM291Mm9xanczMnRtNWc1In0.4y8psgTFHMCq2CR0A6AszQ',
 					}
-				).addTo(mymap);
+				).addTo(mymap); //Add the tilelayer to the map variable
 
+				/* 
+				Alternate tile map. Image style. Use this if lags or map loads slowly
+				 */
 				/* L.tileLayer('http://tiles.mapc.org/basemap/{z}/{x}/{y}.png', {
 					attribution:
 						'Tiles by <a href="http://mapc.org">MAPC</a>, Data by <a href="http://mass.gov/mgis">MassGIS</a>',
@@ -92,7 +100,7 @@
 
 				locmarker = L.marker([0, 0], { icon: mapIcon }).addTo(mymap);
 
-				//search functionality
+				//search functionality..Pochondo hoynai eta
 				/* var searchControl = L.esri.Geocoding.geosearch().addTo(mymap);
 
 				var results = L.layerGroup().addTo(mymap);
@@ -108,22 +116,26 @@
 						//gettheroute(pointloc[0], pointloc[1]);
 					}
 				}); */
-				L.Control.geocoder().addTo(mymap);
+				L.Control.geocoder().addTo(mymap); //This search bar is better
 
+				//Checks for any click on the map
 				mymap.on('click', function(e) {
+					//If the click is alt + left click, then set the starting point but only if destination is set
+					//The click event will be click collected with the local variable e from where we can get the map cords
 					if (e.originalEvent.altKey) {
 						startlocation.value = [e.latlng.lat, e.latlng.lng];
 						getstartpositionname(e.latlng.lat, e.latlng.lng);
 					} else {
 						let pointlocc = [e.latlng.lat, e.latlng.lng];
 						targetlocation.value = pointlocc;
-						firstClick = true;
+						firstClick = true; //Destination is set which means user can set start location now
 					}
 					if (firstClick)
 						gettheroute(targetlocation.value[0], targetlocation.value[1]);
 				});
 			};
 
+			//Get the current location of the user
 			function getLocation() {
 				if (navigator.geolocation) {
 					return new Promise((showPosition) => {
@@ -131,20 +143,18 @@
 					});
 				} else {
 					alert(
-						'Cannot find the location. Please check your GPS or browser compatibility.'
+						'Cannot find the location. Please check your GPS or browser compatibility and reload.'
 					);
 				}
 			}
-
 			async function findloc() {
 				let calculatedPos = await getLocation();
 				let foundpos = [
 					calculatedPos.coords.latitude,
 					calculatedPos.coords.longitude,
 				];
-				setthepos(foundpos);
+				setthepos(foundpos); //For plotting the current obtained location in the map
 			}
-
 			function showPosition(position) {
 				return [position.coords.latitude, position.coords.longitude];
 			}
@@ -175,7 +185,7 @@
 				// .setRadius(420 / zoomlevel.value)
 				//.addTo(mymap);
 
-				//Add map circle 	ONLY IF FIRST TIME
+				//First time done so map loaded now set the viewpoint to the user's cur location
 				if (firsttime && !isLocationEnabled) {
 					mymap.setView(loca, 18, { animate: true, duration: 0.75 });
 					isLoading.value = false;
@@ -186,14 +196,14 @@
 
 				curlocation.value = loca;
 
-				isLocationEnabled = true;
+				isLocationEnabled = true; //Since we successfully got the location which means location access is on
 			}
 
-			//routing
+			//Find the best path between user's start location and destination
 			async function gettheroute(xpos, ypos) {
 				spinShape.value = 'cube';
-				isLoading.value = true;
-				// console.log(isLoading, Date.now());
+				isLoading.value = true; //Animate 'Checking for routes'
+
 				//Clear previous routes
 				if (routestorage != null) {
 					mymap.removeControl(routestorage);
@@ -202,28 +212,31 @@
 
 				//Custom marker for route points
 				var fromIcon = new L.Icon({
-					iconUrl: 'https://i.imgur.com/dj2M62Z.png',
+					iconUrl: 'https://i.imgur.com/dj2M62Z.png', //Home icon for start location
 					iconSize: [20, 20],
 					iconAnchor: [10, 12],
 				});
 				var toIcon = new L.Icon({
-					iconUrl: 'https://i.imgur.com/i0DSvtU.png',
+					iconUrl: 'https://i.imgur.com/i0DSvtU.png', //Circle icon for destination
 					iconSize: [20, 20],
 					iconAnchor: [10, 12],
 				});
 
-				//Store the new route and add it to the map
+				//Store the new route and add it to the map using leaftlet js function
 				routestorage = L.Routing.control({
+					//The coordinates to be included in the route
 					waypoints: [
 						L.latLng(startlocation.value[0], startlocation.value[1]),
 						L.latLng(xpos, ypos),
 					],
+					//Route line styling
 					lineOptions: {
 						styles: [{ color: '#6c5ce7', opacity: 1, weight: 5 }],
 					},
 					routeWhileDragging: true,
 					autoRoute: true,
 
+					//Sets the start and end location markers
 					createMarker: function(i, wp, nWps) {
 						if (i === 0) {
 							// here change the starting and ending icons
@@ -247,23 +260,17 @@
 						}
 					},
 				}).addTo(mymap);
-				routestorage.hide();
+				routestorage.hide(); //Hide the route details
 
-				let routedist = 0;
-				let routedtime = 0;
+				let routedist = 0; //The distance between the start and end point
+				let routedtime = 0; //Possible time to reach the destination
 
+				//If route is found
 				await new Promise(() =>
 					routestorage.on('routesfound', function(e) {
 						var routes = e.routes;
 						var summary = routes[0].summary;
-						// alert distance and time in km and minutes
-						/* alert(
-						'Total distance is ' +
-							summary.totalDistance / 1000 +
-							' km and total time is ' +
-							(summary.totalTime % 3600) / 60 +
-							' minutes'
-					); */
+
 						routedist = summary.totalDistance;
 						routedtime = summary.totalTime;
 						var basefare = 40;
@@ -275,11 +282,13 @@
 						var ridedistance = routedist / 1000;
 						var bookingfee = 30;
 
+						//Standard trip fare
 						var ridefare =
 							basefare +
 							(costperminute * timeofride + costperkm * ridedistance) +
 							bookingfee;
 
+						//Premium trip fare
 						var ridefareprem =
 							basefareprem +
 							(costperminute * timeofride + costperkmprem * ridedistance) +
@@ -293,8 +302,9 @@
 
 						getpositionname(xpos, ypos);
 
+						//Perform this after 1000ms i.e, 1s of finding the route
 						setTimeout(() => {
-							console.log(
+							/* console.log(
 								'Total distance is : ' +
 									routedist / 1000 +
 									' km.\n' +
@@ -307,7 +317,9 @@
 									startlocationname.value +
 									'\nEstimated fare for the trip is : Tk. ' +
 									ridefare
-							);
+							); */
+
+							//Send the start end location names, trip fares to the left panel using emit function of vuejs
 							context.emit(
 								'updatestartlocationnamevalue',
 								startlocationname.value,
@@ -323,20 +335,12 @@
 									(ypos + startlocation.value[1]) / 2,
 								],
 								13,
-								{ animate: true, duration: 0.5 }
+								{ animate: true, duration: 1 }
 							);
 
 							isLoading.value = false;
-							context.emit('routesearched');
-							// console.log(isLoading, Date.now());
+							context.emit('routesearched'); //Tell the other files that route is found so show it to the user
 						}, 1000);
-
-						/*
-					console.log(summary.totalDistance, summary.totalTime);
-					//console.log(a, aa);
-					console.log('the routed:');
-					console.log(routedist, routedtime); */
-						routedvals.value = [routedist, routedtime];
 					})
 				);
 			}
@@ -347,6 +351,7 @@
 					mymap.removeControl(routestorage);
 					routestorage = null;
 
+					//Route cleared so jump user back to current location
 					mymap.flyTo(curlocation.value, 18, {
 						animate: true,
 						duration: 0.75,
@@ -366,9 +371,9 @@
 						rprem
 					);
 				}
-				console.log('Routes cleared');
 			}
 
+			//Convert the geographical coordinates into location names using REVERSE GEOCODING
 			async function getpositionname(x, y) {
 				var geocoding = new require('reverse-geocoding');
 				var config = {
@@ -384,7 +389,7 @@
 							console.log(err);
 						} else {
 							//console.log(data.results[0]);
-							console.log(
+							/* console.log(
 								data.results[0].components.house_number +
 									' ' +
 									data.results[0].components.road +
@@ -394,7 +399,7 @@
 									data.results[0].components.suburb +
 									' ' +
 									data.results[0].components.city
-							);
+							); */
 							targetlocationname.value = data.results[0].formatted;
 							// console.log(data.results[0]);
 						}
@@ -402,6 +407,7 @@
 				);
 			}
 
+			//Same stuff but for start position
 			async function getstartpositionname(x, y) {
 				var geocoding = new require('reverse-geocoding');
 				var config = {
@@ -422,6 +428,7 @@
 				);
 			}
 
+			//Will take the user back to it's current location
 			function flytolocation() {
 				mymap.flyTo(curlocation.value, 18, {
 					animate: true,
@@ -433,20 +440,23 @@
 				let driverLocations = [];
 
 				driverMarkers = L.layerGroup();
-				driverMarkers.clearLayers();
+				driverMarkers.clearLayers(); //Will make sure, every driver movement is updated
 
+				//Using the FETCH API, tell the backend server to get the list of drivers around the user from the database
 				let fetched = fetch(
 					`http://localhost:5000/getdriverlocation/${lat}/${lng}`
 				)
-					.then((res) => res.json())
+					.then((res) => res.json()) //Convert the data to JSON format
 					.then((data) => {
-						driverLocations = data.rows;
+						driverLocations = data.rows; //Store the driver locations in the variable
 					})
 					.catch((err) => console.log(err, 'Error!!!'));
 
+				//After 800ms, reset the driver markers and show the updated one
 				setTimeout(() => {
 					mymap.removeLayer(driverMarkers);
-					//console.log(driverLocations, 'The data is here!!!');
+
+					//For every driver location in the array, push its location in the variable
 					for (let index = 0; index < driverLocations.length; index++) {
 						var carIcon = new L.Icon({
 							iconUrl: 'https://i.imgur.com/dl2jT16.png',
@@ -467,37 +477,18 @@
 				}, 800);
 			}
 
+			//WIll fire when the page loads first
 			onMounted(() => {
 				spinShape.value = 'square';
 				isLoading.value = true;
 				getMapData();
-				/* findloc();
-				setTimeout(() => {
-					//console.log('ready', curlocation.value);
-					startlocation.value = curlocation.value;
-					getstartpositionname(startlocation.value[0], startlocation.value[1]);
-					//console.log(startlocation.value, curlocation.value);
+
+				//Perform updates every 2s
+				setInterval(() => {
+					findloc(); //Find the current location
 
 					setTimeout(() => {
-						if (
-							startlocation.value[0] === curlocation.value[0] &&
-							startlocation.value[1] === curlocation.value[1]
-						)
-							startlocationname.value = 'Current location';
-						context.emit(
-							'updatestartlocationnamevalue',
-							startlocationname.value,
-							targetlocationname.value,
-							rfare,
-							rprem
-						);
-						firsttime = false;
-					}, 800);
-				}, 800); */
-				setInterval(() => {
-					findloc();
-					setTimeout(() => {
-						//console.log('calling again', curlocation.value);
+						//After 800 ms, update the start location
 						setTimeout(() => {
 							if (firsttime) startlocation.value = curlocation.value;
 							if (isLocationEnabled && !firsttime) {
@@ -507,6 +498,8 @@
 								);
 							}
 						}, 800);
+
+						//After 800 ms, send the location names, fare data to the left panel display
 						setTimeout(() => {
 							if (
 								startlocation.value[0] === curlocation.value[0] &&
@@ -521,16 +514,16 @@
 								rprem
 							);
 							if (firsttime && isLocationEnabled) {
-								firsttime = false;
+								firsttime = false; //If it was user's first time, achievement unlocked so don't do some stuffs next time
 							}
 
 							showAllDriversInRange(curlocation.value[0], curlocation.value[1]);
 						}, 800);
 					}, 800);
 				}, 2000);
-				//gettheroute();
 			});
 
+			//Sets up all the variables for other parts of the file or other files to access
 			return {
 				mymap,
 				getLocation,
@@ -538,7 +531,6 @@
 				getMapData,
 				locmarker,
 				gettheroute,
-				routedvals,
 				curlocation,
 				targetlocation,
 				routestorage,
@@ -546,7 +538,6 @@
 				targetlocationname,
 				startlocationname,
 				getstartpositionname,
-				message,
 				firsttime,
 				rfare,
 				rprem,

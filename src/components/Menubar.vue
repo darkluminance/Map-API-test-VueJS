@@ -1,17 +1,23 @@
 <template>
+	<!-- Menu container -->
 	<div class="menu">
+		<!-- Nav bar -->
 		<div class="navcontainer">
 			<img src="/assets\uberlogo.png" alt="" srcset="" id="uberlogo" />
 			<img src="/assets\settings.png" alt="" srcset="" id="settingsicon" />
 		</div>
 
+		<!-- Shows the location names -->
 		<div class="locationviewer">
 			<h2>Route Details</h2>
 
+			<!-- Start location name -->
 			<div class="startloc popup" :title="sl">
 				{{ sl.substr(0, 20) }}...
 				<i class="gg-home-alt icons"></i>
 			</div>
+
+			<!-- End location name -->
 			<div class="endloc popup" :title="el">
 				{{ el.substr(0, 20) }}...
 				<i class="gg-edit-black-point icons"></i>
@@ -20,7 +26,9 @@
 
 		<h2>Choose Class</h2>
 
+		<!-- Trip class -->
 		<div class="classes">
+			<!-- Standard trip -->
 			<div
 				id="standard"
 				class="aclass"
@@ -30,6 +38,8 @@
 				Standard
 				<span style="margin-left: 69px">Tk {{ sp }}</span>
 			</div>
+
+			<!-- Premium trip -->
 			<div
 				id="premium"
 				class="aclass"
@@ -41,6 +51,7 @@
 			</div>
 		</div>
 
+		<!-- Button container -->
 		<div class="buttons">
 			<button style="background: #6c5ce7" @click="shownames">Confirm</button>
 			<button style="background: rgb(28, 28, 28)" @click="emitClearRoute">
@@ -67,11 +78,19 @@
 				selected: 0,
 			};
 		},
-		methods: {
-			shownames() {
-				console.log(this.startloc, this.endloc);
-			},
 
+		//Computed functions compute the values of the variables when they are needed.
+		//In short, gets dynamic values for the variables.
+		//The function will run only once until the values don't get changed
+		computed: {
+			startloc: () => {
+				return this.sl;
+			},
+			endloc: () => {
+				return this.el;
+			},
+		},
+		methods: {
 			myFunction() {
 				var popup = document.getElementById('myPopup');
 				popup.classList.toggle('show');

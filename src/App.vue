@@ -1,4 +1,6 @@
 <template>
+	<!-- The root vue file -->
+
 	<!-- If client -->
 	<div v-if="userdata.type === 'C'" class="Client">
 		<div v-if="loaded" class="appcontainer">
@@ -26,6 +28,7 @@
 			></MapClient>
 		</div>
 	</div>
+
 	<!-- If driver -->
 	<div class="driver" v-if="userdata.type === 'D'" style="display: flex;">
 		<map-driver></map-driver>
@@ -77,7 +80,7 @@
 				rfarestan: 0,
 				rfareprem: 0,
 				isRouteSearching: false,
-				uid: '46A5BC83613C4B2EB2C431CC940C1908',
+				uid: '',
 				userdata: {},
 				loaded: false,
 			};
@@ -94,7 +97,6 @@
 			clearRoutes() {
 				this.$refs.mapComponent.clearTheRoute();
 				this.isRouteSearching = false;
-				// this.$children[0].clearTheRoute();
 			},
 
 			async getUserID(un) {
@@ -105,7 +107,6 @@
 					.then((data) => {
 						user_id = data;
 						this.uid = user_id[0];
-						console.log('User ID found', user_id[0], this.uid, Date.now());
 					})
 					.catch((err) => {
 						console.log(err, 'Error!!!');
@@ -116,7 +117,6 @@
 
 			async getUserData() {
 				let udata = null;
-				console.log('I am here to fetch user data ', Date.now());
 
 				let fetched = await fetch(
 					`http://localhost:5000/getuserdata/${this.uid}`
@@ -124,13 +124,10 @@
 					.then((res) => res.json())
 					.then((data) => {
 						udata = data[0];
-						console.log('Fetched userdata', udata[0]);
 					})
 					.catch((err) => console.log(err, 'Error!!!'));
 
 				setTimeout(() => {
-					// console.log(udata);
-
 					this.userdata = {
 						uid: udata[0],
 						name: udata[1] + ' ' + udata[2],
@@ -141,16 +138,18 @@
 						username: udata[7],
 					};
 
-					//.log(this.userdata);
+					//Data is loaded
 					this.loaded = true;
 				}, 2800);
 			},
 		},
 
 		mounted() {
+			//WHen loaded, asks the user to enter the username. Then find the user id of the username
 			var promp = prompt('Please enter your username', '');
 			this.getUserID(promp);
 
+			//Now after 800ms search the database for the user data of that user id
 			setTimeout(() => {
 				this.getUserData();
 			}, 800);
