@@ -393,9 +393,16 @@
 				spinShape.value = 'square';
 				isLoading.value = true;
 				getMapData();
-
+				var timemultiple = 0;
 				setInterval(() => {
 					findloc();
+
+					if (timemultiple % 15 == 0) {
+						context.emit('updatelocation', curlocation.value);
+						timemultiple = 0;
+					}
+
+					timemultiple = timemultiple + 1;
 				}, 2000);
 			});
 

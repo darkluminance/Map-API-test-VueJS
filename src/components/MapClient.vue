@@ -482,10 +482,18 @@
 				spinShape.value = 'square';
 				isLoading.value = true;
 				getMapData();
+				var timemultiple = 0; //the location will update not every time but only when the value % 15 = 0
 
 				//Perform updates every 2s
 				setInterval(() => {
 					findloc(); //Find the current location
+
+					//Update user location to database only after specific period of time
+					if (timemultiple % 15 == 0) {
+						context.emit('updatelocation', curlocation.value);
+						timemultiple = 0;
+					}
+					timemultiple = timemultiple + 1;
 
 					setTimeout(() => {
 						//After 800 ms, update the start location
@@ -513,6 +521,7 @@
 								rfare,
 								rprem
 							);
+
 							if (firsttime && isLocationEnabled) {
 								firsttime = false; //If it was user's first time, achievement unlocked so don't do some stuffs next time
 							}

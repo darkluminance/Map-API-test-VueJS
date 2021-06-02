@@ -24,6 +24,7 @@
 			<MapClient
 				@updatestartlocationnamevalue="getname"
 				@routesearched="isRouteSearching = true"
+				@updatelocation="updateuserlocation"
 				ref="mapComponent"
 			></MapClient>
 		</div>
@@ -31,7 +32,7 @@
 
 	<!-- If driver -->
 	<div class="driver" v-if="userdata.type === 'D'" style="display: flex;">
-		<map-driver></map-driver>
+		<map-driver @updatelocation="updateuserlocation"></map-driver>
 
 		<welcome-menu
 			:user="this.userdata"
@@ -112,6 +113,44 @@
 						console.log(err, 'Error!!!');
 						alert('Sorry could not find user. Try again');
 						location.reload();
+					});
+			},
+
+			async updateuserlocation(loc) {
+				var sendingdata = {};
+
+				if (this.userdata.type === 'C') {
+					sendingdata = {
+						u_id: this.userdata.uid,
+						user_typ: 'C',
+						C_Location_X: loc[0],
+						C_Location_Y: loc[1],
+					};
+				} else if (this.userdata.type === 'D') {
+					sendingdata = {
+						u_id: this.userdata.uid,
+						user_typ: 'D',
+						DR_Location_X: loc[0],
+						DR_Location_Y: loc[1],
+					};
+				}
+
+				// console.log('to send', sendingdata);
+
+				fetch('http://localhost:5000/updateuserlocation', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(sendingdata),
+				})
+					.then((response) => response.json())
+					.then((data) => {
+						// console.log('Success:', data);
+					})
+					.catch((error) => {
+						console.error('Error:', error);
+						alert('An error occured. Please reload the page again');
 					});
 			},
 
