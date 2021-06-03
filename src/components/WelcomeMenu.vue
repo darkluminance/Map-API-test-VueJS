@@ -7,9 +7,23 @@
 			<img src="/assets\settings.png" alt="" srcset="" id="settingsicon" />
 		</div>
 
+		<!-- User profile -->
+		<div class="profile">
+			<div class="profilerating">
+				<h1>
+					{{ cliverdata.total_rating / cliverdata.total_trips }}
+				</h1>
+			</div>
+			<div class="profilename">
+				<h3>
+					{{ user.name }}
+				</h3>
+			</div>
+		</div>
+
 		<!-- Header -->
 		<div class="welcome">
-			<h2>Welcome,<br />{{ user.name }}!</h2>
+			<h2>Welcome!</h2>
 
 			<p>{{ welcomep1 }}</p>
 			<p>{{ welcomep2 }}</p>
@@ -20,12 +34,18 @@
 			</div>
 		</div>
 	</div>
+
+	<div class="driverearning" v-if="type === 'D' && driverdata.total_earning">
+		<h1>Tk. {{ driverdata.total_earning }}</h1>
+	</div>
 </template>
 
 <script>
 	export default {
 		props: {
 			user: {},
+			cliverdata: {},
+			driverdata: {},
 			welcomep1: '', //Text to show if user is Client
 			welcomep2: '', //Text to show if user is Driver
 			type: '', //Type of User
@@ -81,7 +101,7 @@
 	}
 
 	.driverbtn {
-		margin-top: 8em;
+		margin-top: 6em;
 	}
 
 	.driverbtn button {
@@ -120,5 +140,45 @@
 			transform: scale(1);
 			opacity: 1;
 		}
+	}
+
+	.driverearning {
+		position: absolute;
+		top: 0%;
+		left: 37%;
+		transform: translateX(-37%);
+		z-index: 998;
+		margin: 0;
+		padding-top: 0.5rem;
+		padding-bottom: 1.8rem;
+		padding-left: 1.3rem;
+		padding-right: 1.3rem;
+
+		border-radius: 0 0 50% 50%;
+		box-shadow: 0 0 0 5px rgb(28, 28, 28), 0 0 0 8px #a29bfe;
+
+		color: #eee;
+		background: rgb(48, 48, 48);
+	}
+
+	.profile {
+		margin-bottom: 1rem;
+		display: inline-block;
+	}
+	.profilerating {
+		background: #6c5ce7;
+		color: white;
+		border-radius: 50%;
+		display: inline-block;
+		width: 100px;
+		height: 100px;
+	}
+	.profilerating h1 {
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		position: relative;
+		top: 50%;
+		transform: translateY(-25%);
 	}
 </style>

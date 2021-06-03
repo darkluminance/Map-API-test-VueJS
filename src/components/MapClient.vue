@@ -386,7 +386,9 @@
 				await new Promise(() =>
 					geocoding(config, function(err, data) {
 						if (err) {
-							console.log(err);
+							// console.log(err);
+							//If for some reason, unable to get the location name, just use the coords instead as name
+							targetlocationname.value = `${x.toFixed(5)}, ${y.toFixed(5)}`;
 						} else {
 							//console.log(data.results[0]);
 							/* console.log(
@@ -420,7 +422,9 @@
 				await new Promise(() =>
 					geocoding(config, function(err, data) {
 						if (err) {
-							console.log(err);
+							//console.log(err);
+							//If for some reason, unable to get the location name, just use the coords instead as name
+							startlocationname.value = `${x.toFixed(5)}, ${y.toFixed(5)}`;
 						} else {
 							startlocationname.value = data.results[0].formatted;
 						}
@@ -436,45 +440,53 @@
 				});
 			}
 
-			function showAllDriversInRange(lat, lng) {
+			async function showAllDriversInRange(lat, lng) {
 				let driverLocations = [];
+				let backupmarker;
 
+				backupmarker = driverMarkers;
+				driverMarkers = null; //Will make sure, every driver movement is updated
 				driverMarkers = L.layerGroup();
 				driverMarkers.clearLayers(); //Will make sure, every driver movement is updated
 
 				//Using the FETCH API, tell the backend server to get the list of drivers around the user from the database
-				let fetched = fetch(
+				let fetched = await fetch(
 					`http://localhost:5000/getdriverlocation/${lat}/${lng}`
 				)
 					.then((res) => res.json()) //Convert the data to JSON format
 					.then((data) => {
 						driverLocations = data.rows; //Store the driver locations in the variable
+						mymap.removeLayer(backupmarker);
+
+						if (driverLocations.length) {
+							//For every driver location in the array, push its location in the variable
+							for (let index = 0; index < driverLocations.length; index++) {
+								var carIcon = new L.Icon({
+									iconUrl: 'https://i.imgur.com/dl2jT16.png',
+									iconSize: [21, 53.5],
+									iconAnchor: [10.5, 26.75],
+								});
+
+								carmarker = L.marker(
+									[driverLocations[index][1], driverLocations[index][2]],
+									{
+										icon: carIcon,
+									}
+								);
+
+								driverMarkers.addLayer(carmarker);
+							}
+							mymap.addLayer(driverMarkers);
+						}
 					})
 					.catch((err) => console.log(err, 'Error!!!'));
 
-				//After 800ms, reset the driver markers and show the updated one
+				/* //After 800ms, reset the driver markers and show the updated one
 				setTimeout(() => {
-					mymap.removeLayer(driverMarkers);
+					// mymap.removeLayer(driverMarkers);
 
-					//For every driver location in the array, push its location in the variable
-					for (let index = 0; index < driverLocations.length; index++) {
-						var carIcon = new L.Icon({
-							iconUrl: 'https://i.imgur.com/dl2jT16.png',
-							iconSize: [21, 53.5],
-							iconAnchor: [10.5, 26.75],
-						});
-
-						carmarker = L.marker(
-							[driverLocations[index][1], driverLocations[index][2]],
-							{
-								icon: carIcon,
-							}
-						);
-
-						driverMarkers.addLayer(carmarker);
-					}
-					mymap.addLayer(driverMarkers);
-				}, 800);
+					
+				}, 800); */
 			}
 
 			//WIll fire when the page loads first
@@ -482,7 +494,7 @@
 				spinShape.value = 'square';
 				isLoading.value = true;
 				getMapData();
-				var timemultiple = 0; //the location will update not every time but only when the value % 15 = 0
+				var timemultiple = 1; //the location will update not every time but only when the value % 15 = 0
 
 				//Perform updates every 2s
 				setInterval(() => {
@@ -491,7 +503,7 @@
 					//Update user location to database only after specific period of time
 					if (timemultiple % 15 == 0) {
 						context.emit('updatelocation', curlocation.value);
-						timemultiple = 0;
+						timemultiple = 1;
 					}
 					timemultiple = timemultiple + 1;
 

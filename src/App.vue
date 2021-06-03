@@ -6,6 +6,7 @@
 		<div v-if="loaded" class="appcontainer">
 			<WelcomeMenu
 				:user="this.userdata"
+				:cliverdata="this.cliverdata"
 				:welcomep1="'Click on any part of the map'"
 				:welcomep2="'to set the destination'"
 				:type="'C'"
@@ -39,6 +40,8 @@
 			:welcomep1="'Click on the GO button'"
 			:welcomep2="'to start searching for trips'"
 			:type="'D'"
+			:driverdata="this.driverdata"
+			:cliverdata="this.cliverdata"
 		></welcome-menu>
 	</div>
 
@@ -84,6 +87,8 @@
 				uid: '',
 				userdata: {},
 				loaded: false,
+				cliverdata: {},
+				driverdata: {},
 			};
 		},
 
@@ -154,6 +159,61 @@
 					});
 			},
 
+			async getCliverData() {
+				let udata = null;
+
+				let fetched = await fetch(
+					`http://localhost:5000/getcliverdata/${this.uid}`
+				)
+					.then((res) => res.json())
+					.then((data) => {
+						udata = data[0];
+						this.cliverdata = {
+							uid: udata[0],
+							total_rating: udata[1],
+							total_trips: udata[2],
+						};
+						console.log(this.cliverdata);
+					})
+					.catch((err) => console.log(err, 'Error!!!'));
+
+				/* setTimeout(() => {
+					this.cliverdata = {
+						uid: udata[0],
+						total_rating: udata[1],
+						total_trips: udata[2],
+					};
+					console.log(this.cliverdata);
+				}, 1800); */
+			},
+
+			async getDriverData() {
+				let udata = null;
+
+				let fetched = await fetch(
+					`http://localhost:5000/getdriverdata/${this.uid}`
+				)
+					.then((res) => res.json())
+					.then((data) => {
+						udata = data[0];
+						this.driverdata = {
+							uid: udata[0],
+							total_earning: udata[1],
+						};
+						console.log('Driver', this.driverdata);
+					})
+					.catch((err) => console.log(err, 'Error!!!'));
+
+				/* setTimeout(() => {
+					this.deepcliverdata = {
+						uid: udata[0],
+						DR_Location_X: udata[1],
+						DR_Location_Y: udata[2],
+					};
+					console.log(this.deepcliverdata);
+				}, 1800); */
+			},
+
 			async getUserData() {
 				let udata = null;
 
@@ -163,10 +223,22 @@
 					.then((res) => res.json())
 					.then((data) => {
 						udata = data[0];
+						this.userdata = {
+							uid: udata[0],
+							name: udata[1] + ' ' + udata[2],
+							phone: udata[3],
+							dob: udata[4],
+							age: udata[5],
+							type: udata[6],
+							username: udata[7],
+						};
+
+						//Data is loaded
+						this.loaded = true;
 					})
 					.catch((err) => console.log(err, 'Error!!!'));
 
-				setTimeout(() => {
+				/* setTimeout(() => {
 					this.userdata = {
 						uid: udata[0],
 						name: udata[1] + ' ' + udata[2],
@@ -179,7 +251,7 @@
 
 					//Data is loaded
 					this.loaded = true;
-				}, 2800);
+				}, 2800); */
 			},
 		},
 
@@ -192,6 +264,16 @@
 			setTimeout(() => {
 				this.getUserData();
 			}, 800);
+
+			//Now after 800ms search the database for the cliver data of that user id
+			setTimeout(() => {
+				this.getCliverData();
+			}, 800);
+
+			//Now after 800ms search the database for the client or driver data of that user id
+			setTimeout(() => {
+				if (this.userdata.type === 'D') this.getDriverData();
+			}, 1800);
 		},
 	};
 </script>
