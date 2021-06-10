@@ -15,6 +15,9 @@
 
 		<div v-if="spinShape === 'pulse'">
 			<PulseSpinner></PulseSpinner>
+			<h2>
+				Searching for trips
+			</h2>
 		</div>
 
 		<div v-if="spinShape === 'cube'">
@@ -37,10 +40,13 @@
 	import SquareSpinner from './Animations/SquareSpinner';
 	import PulseSpinner from './Animations/PulseSpinner';
 	import CubeSpinner from './Animations/CubeSpinner';
+	import { useStore } from 'vuex';
+
 	export default {
 		props: {},
 		components: { SquareSpinner, PulseSpinner, CubeSpinner },
 		setup(props, context) {
+			const store = useStore(); //Using vuex store. Same as this.$store
 			var curlocation = ref([0, 0]); //Storing the current location
 			var startlocation = ref([0, 0]); //Storing the current location
 			var startlocationname = ref(''); //Storing the start location name
@@ -59,6 +65,8 @@
 			let driverMarkers = ref(null); //Stores the markers of the drivers in range
 			let circlelayer = ref(null); //The small circle around the user's location
 			let firstClick = false; //To prevent users from setting start location at first before setting destination
+			let isTripSearching = ref(false); //Checks if trip is being searched or not
+			let isTripFound = ref(false); //Checks if trip is found after search
 
 			//Get the map data from the API
 			const getMapData = () => {
@@ -199,8 +207,59 @@
 				isLocationEnabled = true; //Since we successfully got the location which means location access is on
 			}
 
+			//Function to start searching for trips
+			function searchForTrips() {
+				store.commit('setCords', [
+					startlocation.value[0],
+					startlocation.value[1],
+				]); //Set the pickup cords in vuex
+				store.commit('setTrippickup', [
+					startlocation.value[0],
+					startlocation.value[1],
+				]); //Set the pickup cords in vuex
+				store.commit('setTripDestination', [
+					targetlocation.value[0],
+					targetlocation.value[1],
+				]);
+				store.commit('setTripFare', [rfare, rprem]);
+
+				spinShape.value = 'pulse';
+				isLoading.value = true; //Animate 'Searching for trips'
+				isTripSearching.value = true; //Now searching for trips
+
+				setTimeout(() => {
+					spinShape.value = '';
+					isTripSearching.value = false; //Stop searching
+
+					if (isTripFound.value == false) {
+						alert('Sorry, no trips are found');
+					}
+
+					isLoading.value = false;
+				}, store.getters.getWaitTime * 1000);
+			}
+
+			//Called from App.vue in order to set isTripFound = true. Hectic IKR
+			function tripFoundTrue(x, y) {
+				isTripFound.value = true;
+
+				spinShape.value = '';
+				isLoading.value = false; //Animate 'Searching for trips'
+				isTripSearching.value = false; //Now searching for trips
+				// alert('Trip has been found');
+				let sxpo = startlocation.value[0];
+				let sypo = startlocation.value[1];
+
+				clearTheRoute();
+				console.log(x, y);
+
+				setTimeout(() => {
+					gettheroute(x, y, sxpo, sypo, true);
+				}, 800);
+			}
+
 			//Find the best path between user's start location and destination
-			async function gettheroute(xpos, ypos) {
+			async function gettheroute(xpos, ypos, sx = 0, sy = 0, isDriver = false) {
 				spinShape.value = 'cube';
 				isLoading.value = true; //Animate 'Checking for routes'
 
@@ -222,13 +281,21 @@
 					iconAnchor: [10, 12],
 				});
 
+				let slx = 0;
+				let sly = 0;
+
+				if (isDriver) {
+					slx = sx;
+					sly = sy;
+				} else {
+					slx = startlocation.value[0];
+					sly = startlocation.value[1];
+				}
+
 				//Store the new route and add it to the map using leaftlet js function
 				routestorage = L.Routing.control({
 					//The coordinates to be included in the route
-					waypoints: [
-						L.latLng(startlocation.value[0], startlocation.value[1]),
-						L.latLng(xpos, ypos),
-					],
+					waypoints: [L.latLng(slx, sly), L.latLng(xpos, ypos)],
 					//Route line styling
 					lineOptions: {
 						styles: [{ color: '#6c5ce7', opacity: 1, weight: 5 }],
@@ -441,8 +508,11 @@
 			}
 
 			async function showAllDriversInRange(lat, lng) {
+				// console.log('I am being called');
 				let driverLocations = [];
 				let backupmarker;
+				let datalength = 0;
+				let debugdata = null;
 
 				backupmarker = driverMarkers;
 				driverMarkers = null; //Will make sure, every driver movement is updated
@@ -456,11 +526,13 @@
 					.then((res) => res.json()) //Convert the data to JSON format
 					.then((data) => {
 						driverLocations = data.rows; //Store the driver locations in the variable
-						mymap.removeLayer(backupmarker);
+						if (data.rows) datalength = data.rows.length;
+						// console.log(driverLocations);
 
-						if (driverLocations.length) {
-							//For every driver location in the array, push its location in the variable
-							for (let index = 0; index < driverLocations.length; index++) {
+						//For every driver location in the array, push its location in the variable
+						try {
+							mymap.removeLayer(backupmarker);
+							for (let index = 0; index < datalength; index++) {
 								var carIcon = new L.Icon({
 									iconUrl: 'https://i.imgur.com/dl2jT16.png',
 									iconSize: [21, 53.5],
@@ -477,9 +549,13 @@
 								driverMarkers.addLayer(carmarker);
 							}
 							mymap.addLayer(driverMarkers);
+						} catch (error) {
+							console.log(error, error.message);
 						}
 					})
-					.catch((err) => console.log(err, 'Error!!!'));
+					.catch((err) =>
+						console.log(err, 'Error!!!', lat, lng, datalength, driverLocations)
+					);
 
 				/* //After 800ms, reset the driver markers and show the updated one
 				setTimeout(() => {
@@ -511,12 +587,12 @@
 						//After 800 ms, update the start location
 						setTimeout(() => {
 							if (firsttime) startlocation.value = curlocation.value;
-							if (isLocationEnabled && !firsttime) {
+							/* if (isLocationEnabled && !firsttime) {
 								getstartpositionname(
 									startlocation.value[0],
 									startlocation.value[1]
 								);
-							}
+							} */
 						}, 800);
 
 						//After 800 ms, send the location names, fare data to the left panel display
@@ -571,6 +647,10 @@
 				driverMarkers,
 				circlelayer,
 				flytolocation,
+				isTripSearching,
+				isTripFound,
+				searchForTrips,
+				tripFoundTrue,
 			};
 		},
 	};

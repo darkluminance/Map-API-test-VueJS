@@ -4,14 +4,20 @@
 		<!-- Navigation bar -->
 		<div class="navcontainer">
 			<img src="/assets\uberlogo.png" alt="" srcset="" id="uberlogo" />
-			<img src="/assets\settings.png" alt="" srcset="" id="settingsicon" />
+			<img
+				src="/assets\settings.png"
+				alt=""
+				srcset=""
+				id="settingsicon"
+				@click="logoutUser"
+			/>
 		</div>
 
 		<!-- User profile -->
 		<div class="profile">
 			<div class="profilerating">
 				<h1>
-					{{ cliverdata.total_rating / cliverdata.total_trips }}
+					{{ myrating }}
 				</h1>
 			</div>
 			<div class="profilename">
@@ -41,6 +47,8 @@
 </template>
 
 <script>
+	import { mapGetters, mapMutations, mapState, mapActions } from 'vuex';
+
 	export default {
 		props: {
 			user: {},
@@ -49,16 +57,58 @@
 			welcomep1: '', //Text to show if user is Client
 			welcomep2: '', //Text to show if user is Driver
 			type: '', //Type of User
+			myrating: null,
+		},
+
+		methods: {
+			...mapMutations(['setRating', 'setDRating']),
+
+			setUserRating(rating) {
+				this.setRating(rating);
+			},
+			setDriverRating(rating) {
+				this.setDRating(rating);
+			},
+
+			logoutUser() {
+				localStorage.removeItem('token');
+				/* this.$router.push({
+					path: '/',
+				}); */
+				location.reload();
+			},
+		},
+
+		computed: {
+			myrating() {
+				return this.cliverdata.total_rating === 0
+					? 0
+					: this.cliverdata.total_rating / this.cliverdata.total_trips;
+			},
+		},
+
+		mounted() {
+			setTimeout(() => {
+				if (this.type === 'C')
+					this.setUserRating(
+						this.cliverdata.total_rating / this.cliverdata.total_trips
+					);
+				else if (this.type === 'D')
+					this.setDRating(
+						this.cliverdata.total_rating / this.cliverdata.total_trips
+					);
+			}, 1000);
 		},
 	};
 </script>
 
 <style scoped>
 	.menu {
-		width: 24vw;
+		width: 25vw;
 		height: 100vh;
 		margin: 0;
 		float: left;
+		background: rgb(28, 28, 28);
 
 		-webkit-user-select: none;
 		-moz-user-select: none;

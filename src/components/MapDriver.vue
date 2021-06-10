@@ -28,10 +28,12 @@
 	import SquareSpinner from './Animations/SquareSpinner';
 	import PulseSpinner from './Animations/PulseSpinner';
 	import CubeSpinner from './Animations/CubeSpinner';
+	import { useStore } from 'vuex';
 	export default {
 		props: {},
 		components: { SquareSpinner, PulseSpinner, CubeSpinner },
 		setup(props, context) {
+			const store = useStore(); //Using vuex store. Same as this.$store
 			var curlocation = ref([0, 0]); //Storing the current location
 			var startlocation = ref([0, 0]); //Storing the current location
 			var startlocationname = ref(''); //Storing the start location name
@@ -151,9 +153,13 @@
 
 			//routing
 			async function gettheroute(xpos, ypos) {
-				spinShape.value = 'cube';
-				isLoading.value = true;
-				// console.log(isLoading, Date.now());
+				console.log(
+					'Asi re vai ..... ki chas',
+					xpos,
+					ypos,
+					curlocation.value[0],
+					curlocation.value[1]
+				);
 				//Clear previous routes
 				if (routestorage != null) {
 					mymap.removeControl(routestorage);
@@ -161,11 +167,6 @@
 				}
 
 				//Custom marker for route points
-				var fromIcon = new L.Icon({
-					iconUrl: 'https://i.imgur.com/dj2M62Z.png',
-					iconSize: [20, 20],
-					iconAnchor: [10, 12],
-				});
 				var toIcon = new L.Icon({
 					iconUrl: 'https://i.imgur.com/i0DSvtU.png',
 					iconSize: [20, 20],
@@ -175,7 +176,7 @@
 				//Store the new route and add it to the map
 				routestorage = L.Routing.control({
 					waypoints: [
-						L.latLng(startlocation.value[0], startlocation.value[1]),
+						L.latLng(curlocation.value[0], curlocation.value[1]),
 						L.latLng(xpos, ypos),
 					],
 					lineOptions: {
@@ -185,13 +186,8 @@
 					autoRoute: true,
 
 					createMarker: function(i, wp, nWps) {
-						if (i === 0) {
-							// here change the starting and ending icons
-							return L.marker(wp.latLng, {
-								icon: fromIcon, // here pass the custom marker icon instance
-							});
-						} else if (i === nWps - 1) {
-							// here change the starting and ending icons
+						if (i === nWps - 1) {
+							// here change the user location icons
 							return L.marker(wp.latLng, {
 								icon: toIcon, // here pass the custom marker icon instance
 							});
@@ -199,11 +195,6 @@
 								.on('add', function(event) {
 									event.target.openPopup();
 								}); */
-						} else {
-							// here change all the others
-							return L.marker(wp.latLng, {
-								icon: toIcon,
-							});
 						}
 					},
 				}).addTo(mymap);
@@ -226,30 +217,8 @@
 					); */
 						routedist = summary.totalDistance;
 						routedtime = summary.totalTime;
-						var basefare = 40;
-						var basefareprem = 80;
-						var costperminute = 3;
-						var timeofride = routedtime / 60;
-						var costperkm = 21;
-						var costperkmprem = 25;
-						var ridedistance = routedist / 1000;
-						var bookingfee = 30;
 
-						var ridefare =
-							basefare +
-							(costperminute * timeofride + costperkm * ridedistance) +
-							bookingfee;
-
-						var ridefareprem =
-							basefareprem +
-							(costperminute * timeofride + costperkmprem * ridedistance) +
-							bookingfee;
-
-						ridefare = Math.round(ridefare);
-						ridefareprem = Math.round(ridefareprem);
-
-						rfare = ridefare;
-						rprem = ridefareprem;
+						store.commit('setRequestGoTime', routedtime / 60); //Set the pickup time in vuex
 
 						getpositionname(xpos, ypos);
 
@@ -264,30 +233,18 @@
 									'Destination is : ' +
 									targetlocationname.value +
 									'\nFrom : ' +
-									startlocationname.value +
-									'\nEstimated fare for the trip is : Tk. ' +
-									ridefare
+									startlocationname.value
 							);
-							context.emit(
-								'updatestartlocationnamevalue',
-								startlocationname.value,
-								targetlocationname.value,
-								ridefare,
-								ridefareprem
-							);
-
 							//Set the mapview to middle point of the two points
 							mymap.flyTo(
 								[
-									(xpos + startlocation.value[0]) / 2,
-									(ypos + startlocation.value[1]) / 2,
+									(xpos + curlocation.value[0]) / 2,
+									(ypos + curlocation.value[1]) / 2,
 								],
-								13,
+								15,
 								{ animate: true, duration: 0.5 }
 							);
 
-							isLoading.value = false;
-							context.emit('routesearched');
 							// console.log(isLoading, Date.now());
 						}, 1000);
 
@@ -393,17 +350,25 @@
 				spinShape.value = 'square';
 				isLoading.value = true;
 				getMapData();
+				findloc();
+				context.emit('updatelocation', curlocation.value);
+
 				var timemultiple = 1;
 				setInterval(() => {
 					findloc();
+					store.commit('setDLocation', [
+						curlocation.value[0],
+						curlocation.value[1],
+					]);
 
 					if (timemultiple % 15 == 0) {
 						context.emit('updatelocation', curlocation.value);
+
 						timemultiple = 1;
 					}
 
 					timemultiple = timemultiple + 1;
-				}, 2000);
+				}, 1000);
 			});
 
 			return {

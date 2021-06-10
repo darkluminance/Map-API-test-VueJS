@@ -33,7 +33,7 @@
 				id="standard"
 				class="aclass"
 				:class="{ eita: !selected }"
-				@click="selected = 0"
+				@click="setType(0)"
 			>
 				Standard
 				<span style="margin-left: 69px">Tk {{ sp }}</span>
@@ -44,7 +44,7 @@
 				id="premium"
 				class="aclass"
 				:class="{ eita: selected }"
-				@click="selected = 1"
+				@click="setType(1)"
 			>
 				Premium
 				<span style="margin-left: 69px">Tk {{ pp }}</span>
@@ -53,7 +53,9 @@
 
 		<!-- Button container -->
 		<div class="buttons">
-			<button style="background: #6c5ce7" @click="shownames">Confirm</button>
+			<button style="background: #6c5ce7" @click="emitLookTrip">
+				Confirm
+			</button>
 			<button style="background: rgb(28, 28, 28)" @click="emitClearRoute">
 				Cancel
 			</button>
@@ -62,6 +64,8 @@
 </template>
 
 <script>
+	import { mapGetters, mapMutations, mapState, mapActions } from 'vuex';
+
 	export default {
 		props: {
 			sl: '',
@@ -91,6 +95,21 @@
 			},
 		},
 		methods: {
+			...mapMutations(['setTripType']),
+
+			setType(type) {
+				this.selected = type;
+				let triptype = '';
+
+				if (type === 0) {
+					triptype = 'Standard';
+				} else if (type === 1) {
+					triptype = 'Premium';
+				}
+
+				this.setTripType(triptype);
+			},
+
 			myFunction() {
 				var popup = document.getElementById('myPopup');
 				popup.classList.toggle('show');
@@ -99,6 +118,10 @@
 
 			emitClearRoute() {
 				this.$emit('resetRoutes');
+			},
+
+			emitLookTrip() {
+				this.$emit('lookTrip');
 			},
 		},
 	};
@@ -110,6 +133,7 @@
 		height: 100vh;
 		margin: 0;
 		float: left;
+		background: rgb(28, 28, 28);
 	}
 	.menu img#uberlogo {
 		width: 128px;
